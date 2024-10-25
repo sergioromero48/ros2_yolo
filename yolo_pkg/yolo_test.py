@@ -50,6 +50,7 @@ class ImageSubscriber(Node):
         """
         # Convert ROS Image message to OpenCV image
         current_frame = self.br.imgmsg_to_cv2(data, desired_encoding='bgr8')
+        current_frame = cv2.flip(current_frame, 1)
         
         # Convert BGR to RGB for YOLO compatibility
         current_frame_rgb = cv2.cvtColor(current_frame, cv2.COLOR_BGR2RGB)
@@ -62,7 +63,11 @@ class ImageSubscriber(Node):
         
         # Convert back to BGR for OpenCV display
         result_image_bgr = cv2.cvtColor(result_image, cv2.COLOR_RGB2BGR)
-        
+
+        # Fix the window size error
+        cv2.namedWindow("YOLO Detection", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("YOLO Detection", 800, 600)  # Set the window size (width, height)
+
         # Display the result
         cv2.imshow("YOLO Detection", result_image_bgr)
         cv2.waitKey(1)
