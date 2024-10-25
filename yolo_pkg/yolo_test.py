@@ -29,13 +29,13 @@ class ImageSubscriber(Node):
           
         # Used to convert between ROS and OpenCV images
         self.br = CvBridge()
-        
-        # Initialize the YOLO model
+
         model_path = os.path.join(
-            os.path.dirname(__file__),  # This gets the path to the current file (yolo_pkg/yolo_pkg)
-            '..',                       # Go one level up (to yolo_pkg)
-            'yolo_models',              # Then access the yolo_models directory
-            'yolo11n.pt'                # Model file
+            os.getenv('AMENT_PREFIX_PATH').split(':')[0],  # Get the ROS2 install path
+            'share',                                      # The share directory
+            'yolo_pkg',                                   # Your package directory
+            'yolo_models',                                # The folder with the model
+            'yolo11n.pt'                                  # Model filename
         )
 
         # Check if the model file exists

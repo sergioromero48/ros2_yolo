@@ -13,6 +13,7 @@
   <depend>cv_bridge</depend>
   <depend>opencv-python</depend>
   <depend>ultralytics</depend>
+  <depend>ros2launch</depend>
 
   <!-- Test dependencies -->
   <test_depend>ament_copyright</test_depend>
