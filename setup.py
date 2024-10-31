@@ -10,8 +10,9 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        ('share/' + package_name + '/launch', ['launch/yolo_camera_launch.py']),  # Fixed path
-        ('share/' + package_name + '/yolo_models', ['yolo_models/yolo11n.pt']),   # Fixed path
+        ('share/' + package_name + '/launch', ['launch/yolo_camera_launch.py']),
+        ('share/' + package_name + '/yolo_models', ['yolo_models/yolo11n.pt']),
+        ('share/' + package_name + '/feed', ['feed/WIN_20241031_04_28_25_Pro.mp4']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -23,6 +24,8 @@ setup(
     entry_points={
         'console_scripts': [
             'yolo_test = yolo_pkg.yolo_test:main',
+            'camera_node = yolo_pkg.camera_node:main',
+            'tracker_node = yolo_pkg.tracker:main',
         ],
     },
 )

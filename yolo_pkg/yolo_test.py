@@ -1,35 +1,41 @@
-# Import the necessary libraries
-import rclpy # Python library for ROS 2
-from rclpy.node import Node # Handles the creation of nodes
-from sensor_msgs.msg import Image # Image is the message type
-from cv_bridge import CvBridge # Package to convert between ROS and OpenCV Images
-import cv2 # OpenCV library
-from ultralytics import YOLO # YOLO model for object detection
+import rclpy  # Python library for ROS 2
+from rclpy.node import Node  # Handles the creation of nodes
+from sensor_msgs.msg import Image  # Image is the message type
+from std_msgs.msg import String  # For publishing detection results as JSON
+from cv_bridge import CvBridge  # Package to convert between ROS and OpenCV Images
+import cv2  # OpenCV library
+from ultralytics import YOLO  # YOLO model for object detection
 import os
- 
-class ImageSubscriber(Node):
+import json  # For JSON serialization
+
+class YoloDetectionNode(Node):
     """
-    Create an ImageSubscriber class, which is a subclass of the Node class.
+    A ROS 2 Node that subscribes to an image topic, runs YOLO object detection,
+    publishes detection data as JSON, and publishes the annotated image.
     """
     def __init__(self):
         """
-        Class constructor to set up the node
+        Class constructor to set up the node.
         """
-        # Initiate the Node class's constructor and give it a name
-        super().__init__('yolo_test')
-          
-        # Create the subscriber. This subscriber will receive an Image
-        # from the /camera/image_raw topic. The queue size is 10 messages.
+        # Initialize the Node class's constructor and give it a name
+        super().__init__('yolo_detection_node')
+        
+        # Create the subscriber to receive an Image from the /camera/image_raw topic
         self.subscription = self.create_subscription(
             Image, 
-            '/camera/image_raw',  # Updated topic
+            '/camera/image_raw',
             self.listener_callback, 
             10)
-        self.subscription # prevent unused variable warning
-          
+        self.subscription  # prevent unused variable warning
+
+        # Publishers for detection results and annotated image
+        self.detection_publisher = self.create_publisher(String, '/camera/full_detections', 10)
+        self.image_publisher = self.create_publisher(Image, '/camera/image_annotated', 10)
+        
         # Used to convert between ROS and OpenCV images
         self.br = CvBridge()
 
+        # Load the YOLO model path
         model_path = os.path.join(
             os.getenv('AMENT_PREFIX_PATH').split(':')[0],  # Get the ROS2 install path
             'share',                                      # The share directory
@@ -46,44 +52,56 @@ class ImageSubscriber(Node):
        
     def listener_callback(self, data):
         """
-        Callback function.
+        Callback function that processes an image and publishes all YOLO detection data.
         """
         # Convert ROS Image message to OpenCV image
         current_frame = self.br.imgmsg_to_cv2(data, desired_encoding='bgr8')
-        current_frame = cv2.flip(current_frame, 1)
-        
-        # Convert BGR to RGB for YOLO compatibility
         current_frame_rgb = cv2.cvtColor(current_frame, cv2.COLOR_BGR2RGB)
-        
+
         # Run YOLO on the image
         results = self.model(current_frame_rgb)
-        
-        # Display YOLO predictions on the image (bounding boxes, etc.)
+
+        # Generate the annotated image
         result_image = results[0].plot()
-        
-        # Convert back to BGR for OpenCV display
-        result_image_bgr = cv2.cvtColor(result_image, cv2.COLOR_RGB2BGR)
 
-        # Fix the window size error
-        cv2.namedWindow("YOLO Detection", cv2.WINDOW_NORMAL)
-        cv2.resizeWindow("YOLO Detection", 800, 600)  # Set the window size (width, height)
+        # Convert annotated image to ROS Image message and publish it
+        annotated_image_msg = self.br.cv2_to_imgmsg(result_image, encoding='bgr8')
+        self.image_publisher.publish(annotated_image_msg)
 
-        # Display the result
-        cv2.imshow("YOLO Detection", result_image_bgr)
-        cv2.waitKey(1)
-  
+        # Prepare detection data dictionary
+        full_results = {
+            "detections": []
+        }
+
+        # Process each result from YOLO
+        for detection in results:
+            detection_data = {
+                "boxes": detection.boxes.data.cpu().numpy().tolist(),  # Bounding boxes
+                "masks": detection.masks.data.cpu().numpy().tolist() if detection.masks is not None else None,  # Segmentation masks
+                "keypoints": detection.keypoints.data.cpu().numpy().tolist() if detection.keypoints is not None else None,  # Pose keypoints
+                "probs": detection.probs.data.cpu().numpy().tolist() if detection.probs is not None else None,  # Classification probabilities
+                "obb": detection.obb.data.cpu().numpy().tolist() if detection.obb is not None else None  # Oriented bounding boxes
+            }
+
+            full_results["detections"].append(detection_data)
+
+        # Publish all detection data as a JSON string
+        detection_msg = String()
+        detection_msg.data = json.dumps(full_results)
+        self.detection_publisher.publish(detection_msg)
+
 def main(args=None):
     # Initialize the rclpy library
     rclpy.init(args=args)
     
     # Create the node
-    image_subscriber = ImageSubscriber()
+    yolo_detection_node = YoloDetectionNode()
     
-    # Spin the node so the callback function is called.
-    rclpy.spin(image_subscriber)
+    # Spin the node so the callback functions are called
+    rclpy.spin(yolo_detection_node)
     
     # Destroy the node explicitly
-    image_subscriber.destroy_node()
+    yolo_detection_node.destroy_node()
     
     # Shutdown the ROS client library for Python
     rclpy.shutdown()

@@ -4,16 +4,20 @@
   <name>yolo_pkg</name>
   <version>0.0.0</version>
   <description>A simple ROS2 package that subscribes to image topics</description>
-  <maintainer email="sergio@todo.todo">sergio</maintainer>
+  <maintainer email="sergioromero48@outlook.com">sergio</maintainer>
   <license>Apache-2.0</license>
 
   <!-- Required dependencies -->
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
   <depend>cv_bridge</depend>
   <depend>opencv-python</depend>
   <depend>ultralytics</depend>
   <depend>ros2launch</depend>
+  <depend>numpy</depend>
+  <depend>os</depend>
+  <depend>json</depend>
 
   <!-- Test dependencies -->
   <test_depend>ament_copyright</test_depend>
