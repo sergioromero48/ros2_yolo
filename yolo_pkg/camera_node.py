@@ -12,10 +12,14 @@ class CameraNode(Node):
         self.publisher_ = self.create_publisher(Image, 'camera/image_raw', 10)
         
         # Define OpenCV video capture and loop mechanism
-        self.cap = cv2.VideoCapture('/home/sergio/ros2_ws/src/yolo_pkg/feed/WIN_20241031_04_28_25_Pro.mp4')
+        self.cap = cv2.VideoCapture(0)
         if not self.cap.isOpened():
-            self.get_logger().error("Cannot open video file")
+            self.get_logger().error("Cannot open camera feed")
             rclpy.shutdown()
+
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)  # Set frame width
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)  # Set frame height
+        self.cap.set(cv2.CAP_PROP_FPS, 30)  # Set FPS
 
         # CvBridge to convert OpenCV images to ROS Image messages
         self.bridge = CvBridge()
